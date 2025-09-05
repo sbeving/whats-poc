@@ -37,6 +37,7 @@ var dbAddress = flag.String("db-address", "file:db/whatsbot.db?_foreign_keys=on"
 var requestFullSync = flag.Bool("request-full-sync", false, "Request full (1 year) history sync when logging in?")
 var mediaPath = flag.String("media-path", "media", "Path to store media files in")
 var historyPath = flag.String("history-path", "history", "Path to store history files in")
+var telegramMode = flag.Bool("telegram", false, "Run as Telegram bot instead of CLI")
 var pairRejectChan = make(chan bool, 1)
 
 var getIDSecret string
@@ -60,6 +61,40 @@ func main() {
 		log.Errorf("Failed to connect to database: %v", err)
 		return
 	}
+
+	// Check if we should run in Telegram bot mode
+	if *telegramMode {
+		runTelegramBot(storeContainer)
+		return
+	}
+
+	// Original CLI mode
+	runCLIMode(storeContainer)
+}
+
+// runTelegramBot starts the application in Telegram bot mode
+func runTelegramBot(storeContainer *sqlstore.Container) {
+	// Get Telegram bot token
+	token := GetBotToken()
+	
+	// Create Telegram bot
+	bot, err := NewTelegramBot(token, storeContainer)
+	if err != nil {
+		log.Errorf("Failed to create Telegram bot: %v", err)
+		return
+	}
+
+	// Start the bot
+	log.Infof("Starting Telegram bot...")
+	err = bot.Start()
+	if err != nil {
+		log.Errorf("Failed to start Telegram bot: %v", err)
+		return
+	}
+}
+
+// runCLIMode runs the original CLI application
+func runCLIMode(storeContainer *sqlstore.Container) {
 	device, err := storeContainer.GetFirstDevice()
 	if err != nil {
 		log.Errorf("Failed to get device: %v", err)

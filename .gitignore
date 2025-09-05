@@ -2,3 +2,5 @@ db/
 history/
 .DS_Store
 whatsappspoofing
+*.env
+whats-spoofing-bot
